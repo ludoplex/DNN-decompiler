@@ -26,10 +26,9 @@ def fuse_batchnorm(topo_list: list, func_meta_data: dict):
                                     and op_type_list[i+1] == 'sqrt' \
                                     and op_type_list[i+2] == 'divide' \
                                     and op_type_list[i+3] == 'multiply':
-            new_op[1] += '-{},{}-{},{}-{},{}-{}'.format(topo_list[i][6],
-                                                        topo_list[i+3][1], topo_list[i+3][6],
-                                                        topo_list[i+6][1], topo_list[i+6][6],
-                                                        topo_list[i+8][1], topo_list[i+8][6])
+            new_op[
+                1
+            ] += f'-{topo_list[i][6]},{topo_list[i + 3][1]}-{topo_list[i + 3][6]},{topo_list[i + 6][1]}-{topo_list[i + 6][6]},{topo_list[i + 8][1]}-{topo_list[i + 8][6]}'
             new_op[2] = 'batchnorm'
             new_op[3] = [topo_list[i+5][3][0]]
             new_op[4] = topo_list[i+10][4]

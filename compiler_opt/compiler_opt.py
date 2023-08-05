@@ -52,12 +52,7 @@ def is_glow(funcs_dir: str, string_txt: str):
 def is_tvm_alloca(func_asm: str):
     op_list = get_op_list(func_asm)
     pattern_list = ['sub'] + ['mov']*5 + ['call', 'add', 'retn']
-    if op_list == pattern_list:
-        return True
-    pattern_list = ['mov'] * 6 + ['jmp']
-    if op_list == pattern_list:
-        return True
-    return False
+    return True if op_list == pattern_list else op_list == ['mov'] * 6 + ['jmp']
 
 
 def is_tvm_opt(string_txt: str):
@@ -66,9 +61,8 @@ def is_tvm_opt(string_txt: str):
         lines = f.readlines()
         for l in lines:
             if l.startswith('Assert fail: (num_args ==') and 'concat' not in l:
-                match = re.search('num_args == ([0-9]+)', l)
-                if match:
-                    num_arg = int(match.group(1))
+                if match := re.search('num_args == ([0-9]+)', l):
+                    num_arg = int(match[1])
                     if num_arg > 3:
                         opt = True
                         break
@@ -77,7 +71,6 @@ def is_tvm_opt(string_txt: str):
 
 def is_tvm(funcs_dir: str, string_txt: str):
     tvm = False
-    opt = False
     files = os.listdir(funcs_dir)
     for f in files:
         if f.endswith('.txt') and 'label' not in f:
@@ -85,8 +78,7 @@ def is_tvm(funcs_dir: str, string_txt: str):
             if is_tvm_alloca(f):
                 tvm = True
                 break
-    if tvm:
-        opt = is_tvm_opt(string_txt)
+    opt = is_tvm_opt(string_txt) if tvm else False
     return tvm, opt
 
 
@@ -96,7 +88,7 @@ def main(root_dir: str):
         if f.endswith('.txt'):
             print(f[:-4])
             f_path = os.path.join(root_dir, f)
-            funcs_dir = os.path.join(root_dir, f[:-4]+'_funcs')
+            funcs_dir = os.path.join(root_dir, f'{f[:-4]}_funcs')
             print('is glow?')
             print(is_glow(funcs_dir, f_path))
             print('is tvm? opt?')

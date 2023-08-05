@@ -2,14 +2,14 @@
 import time
 import logging
 
-print('get logger: {}'.format('decompiler.' + __name__))
-logger = logging.getLogger('decompiler.' + __name__)
+print(f'get logger: decompiler.{__name__}')
+logger = logging.getLogger(f'decompiler.{__name__}')
 
 
 def memory_slices(mem_read_trace: str):
-    mem_obj = dict()  # id --> mem_obj(start, end)
-    end_map = dict()  # end_addr --> id
-    start_map = dict()  # start_addr --> id
+    mem_obj = {}
+    end_map = {}
+    start_map = {}
     next_id = 0
     start_time = time.time()
     with open(mem_read_trace, 'r') as f:
@@ -28,7 +28,7 @@ def memory_slices(mem_read_trace: str):
         addr_lists = sorted(addr_lists, key=lambda x: x[0])
 
         for start_addr, end_addr in addr_lists:
-            if start_addr in end_map.keys() and end_addr in start_map.keys():  # []<current_mem_obj>[]
+            if start_addr in end_map and end_addr in start_map:  # []<current_mem_obj>[]
                 id_1 = end_map[start_addr]
                 id_2 = start_map[end_addr]
                 start1, end1 = mem_obj[id_1]
@@ -45,7 +45,7 @@ def memory_slices(mem_read_trace: str):
                 end_map[new_end] = new_id
                 end_map.pop(end1)
 
-            elif start_addr in end_map.keys():  # []<>
+            elif start_addr in end_map:  # []<>
                 mem_id = end_map[start_addr]
                 old_start, old_end = mem_obj[mem_id]
                 new_end = end_addr
@@ -55,7 +55,7 @@ def memory_slices(mem_read_trace: str):
                 end_map.pop(start_addr)
                 end_map[end_addr] = mem_id
 
-            elif end_addr in start_map.keys():  # <>[]
+            elif end_addr in start_map:  # <>[]
                 mem_id = start_map[end_addr]
                 old_start, old_end = mem_obj[mem_id]
                 new_start = start_addr
@@ -64,7 +64,7 @@ def memory_slices(mem_read_trace: str):
                 mem_obj[mem_id] = (new_start, new_end)
                 start_map.pop(end_addr)
                 start_map[start_addr] = mem_id
-            elif start_addr in start_map.keys():  # <[]>
+            elif start_addr in start_map:  # <[]>
                 mem_id = start_map[start_addr]
                 old_start, old_end = mem_obj[mem_id]
                 if end_addr > old_end:
@@ -81,36 +81,34 @@ def memory_slices(mem_read_trace: str):
         old_mem_objs = sorted(old_mem_objs, key=lambda x: x[0])
         new_mem_objs = []
         for old_obj in old_mem_objs:
-            if len(new_mem_objs) == 0:
+            if not new_mem_objs:
                 new_mem_objs.append(old_obj)
             elif old_obj[0] <= new_mem_objs[-1][1] < old_obj[1]:
                 new_mem_objs[-1] = (new_mem_objs[-1][0], old_obj[1])
             elif old_obj[1] <= new_mem_objs[-1][1]:
                 continue
-            elif new_mem_objs[-1][1] < old_obj[0]:
-                new_mem_objs.append(old_obj)
             else:
-                print('unexpected')
-        # For Debugging
-        # if len(new_mem_objs) < 20:
-        #     for start_addr, end_addr in new_mem_objs:
-        #         print('[{}, {}] {}'.format(hex(start_addr), hex(end_addr), hex(end_addr - start_addr)))
-        # else:
-        #     for start_addr, end_addr in new_mem_objs[:20]:
-        #         print('[{}, {}] {}'.format(hex(start_addr), hex(end_addr), hex(end_addr - start_addr)))
-        #     print('......')
+                new_mem_objs.append(old_obj)
+            # For Debugging
+            # if len(new_mem_objs) < 20:
+            #     for start_addr, end_addr in new_mem_objs:
+            #         print('[{}, {}] {}'.format(hex(start_addr), hex(end_addr), hex(end_addr - start_addr)))
+            # else:
+            #     for start_addr, end_addr in new_mem_objs[:20]:
+            #         print('[{}, {}] {}'.format(hex(start_addr), hex(end_addr), hex(end_addr - start_addr)))
+            #     print('......')
     end_time = time.time()
-    print('Memory Clustering Time: {}s'.format(end_time - start_time))
-    logger.info('Memory Clustering time - {}s'.format(end_time - start_time))
+    print(f'Memory Clustering Time: {end_time - start_time}s')
+    logger.info(f'Memory Clustering time - {end_time - start_time}s')
     return new_mem_objs
 
 
 def filter_mem_regions(mem_read_regions: list, mem_write_regions: list, keep_overlap=False):
     new_read_mem_regions = []
-    for i in range(len(mem_read_regions)):
-        for j in range(len(mem_write_regions)):
-            in_mem = mem_read_regions[i]
-            out_mem = mem_write_regions[j]
+    for mem_read_region in mem_read_regions:
+        for mem_write_region in mem_write_regions:
+            in_mem = mem_read_region
+            out_mem = mem_write_region
             if in_mem[1] == out_mem[1]:
                 if in_mem[0] < out_mem[0] < in_mem[1]:
                     in_mem = (in_mem[0], out_mem[0])
@@ -120,7 +118,6 @@ def filter_mem_regions(mem_read_regions: list, mem_write_regions: list, keep_ove
                 elif in_mem[0] >= out_mem[0]:
                     if keep_overlap:
                         new_read_mem_regions.append(in_mem)
-                    pass  # overlapped by out mem
             elif in_mem[0] == out_mem[0]:
                 if in_mem[0] < out_mem[1] < in_mem[1]:
                     in_mem = (out_mem[1], in_mem[1])
@@ -130,7 +127,6 @@ def filter_mem_regions(mem_read_regions: list, mem_write_regions: list, keep_ove
                 elif in_mem[1] <= out_mem[1]:
                     if keep_overlap:
                         new_read_mem_regions.append(in_mem)
-                    pass  # overlapped by out mem
             else:
                 new_read_mem_regions.append(in_mem)
     return new_read_mem_regions

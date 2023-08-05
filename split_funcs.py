@@ -76,9 +76,9 @@ def save_tvm_funcs(funcs_list, output_dir):
         with open(output_path, 'w') as f:
             f.write(func_body)
             current_index += 1
-            print('written {}'.format(output_path))
+            print(f'written {output_path}')
             writen_funcs_count += 1
-    print('{} funcs have been written'.format(writen_funcs_count))
+    print(f'{writen_funcs_count} funcs have been written')
 
 
 def test():
@@ -91,8 +91,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 3:
         asm_path = sys.argv[1]
         output_dir = sys.argv[2]
-        print("asm file: {}, continue".format(asm_path))
-        print("output dir: {}, continue".format(output_dir))
+        print(f"asm file: {asm_path}, continue")
+        print(f"output dir: {output_dir}, continue")
         asm_txt = open(asm_path, 'r').read()
         funcs = split_tvm_asm(asm_txt)
         save_tvm_funcs(funcs, output_dir)

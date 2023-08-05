@@ -9,8 +9,8 @@ import struct
 import subprocess
 import logging
 
-print('get logger: {}'.format('decompiler.' + __name__))
-logger = logging.getLogger('decompiler.' + __name__)
+print(f'get logger: decompiler.{__name__}')
+logger = logging.getLogger(f'decompiler.{__name__}')
 
 
 class cd:
@@ -44,52 +44,79 @@ def run(prog_path):
 
 project_dir = './'
 
-pin_home = config.pin_home
-
 mypintool_dir = config.pintool_dir
 
-fun_call_rdi_rsi_cmd = pin_home + "pin -t " + \
-                       mypintool_dir + "obj-intel64/FunCallRdiRsi.so -o {} -addrs_file {} -- {} {}"
-fun_call_rdx_cmd = pin_home + "pin -t " + \
-                   mypintool_dir + "obj-intel64/FunCallRdx.so -o {} -addrs_file {} -- {} {}"
-fused_rdi_cmd = pin_home + "pin -t " + \
-                mypintool_dir + "obj-intel64/FusedRdi.so -o {} -addrs_file {} -- {} {}"
-func_call_cmd = pin_home + "pin -t " + \
-                mypintool_dir + "obj-intel64/FunCallTrace.so -o {} -addrs_file {} -- {} {}"
+pin_home = config.pin_home
+fun_call_rdi_rsi_cmd = (
+    f"{pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/FunCallRdiRsi.so -o {} -addrs_file {} -- {} {}"
+)
+fun_call_rdx_cmd = (
+    f"{pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/FunCallRdx.so -o {} -addrs_file {} -- {} {}"
+)
+fused_rdi_cmd = (
+    f"{pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/FusedRdi.so -o {} -addrs_file {} -- {} {}"
+)
+func_call_cmd = (
+    f"{pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/FunCallTrace.so -o {} -addrs_file {} -- {} {}"
+)
 # output_path, start_addr, end_addr, program, input_data
-inst_trace_cmd = "time " + \
-                 pin_home + "pin -t " + \
-                 mypintool_dir + "obj-intel64/InstTrace.so -o {} -start {} -end {} -- {} {}"
-timeout_inst_trace_cmd = "time timeout 15s " + \
-                         pin_home + "pin -t " + \
-                         mypintool_dir + "obj-intel64/InstTrace.so -o {} -start {} -end {} -- {} {}"
-timeout_mem_write_log_cmd = "time timeout 15s " + pin_home + "pin -t " + \
-                            mypintool_dir + "obj-intel64/MemoryWrite.so -o {} -start {} -end {} -- {} {}"
-mem_write_log_cmd = "time " + pin_home + "pin -t " + \
-                    mypintool_dir + "obj-intel64/MemoryWrite.so -o {} -start {} -end {} -- {} {}"
-mem_read_log_cmd = "time " + pin_home + "pin -t " + \
-                   mypintool_dir + "obj-intel64/MemoryRead.so -o {} -start {} -end {} -- {} {}"
-mem_dump_log_cmd = "time " + pin_home + "pin -t " + \
-                   mypintool_dir + "obj-intel64/MemoryDump.so -o {} -length {} -dump_point {} -reg_num {} -- {} {}"
-mem_dump_2_log_cmd = "time " + pin_home + "pin -t " + \
-                     mypintool_dir + "obj-intel64/MemoryDump_2.so -o {} -length {} -dump_point {} -data_index {} -- {} {}"
-mem_dump_3_log_cmd = pin_home + "pin -t " + \
-                     mypintool_dir + "obj-intel64/MemoryDump_3.so -o {} -length {} -dump_point {} -dump_addr {} -- {} {}"
-single_dump_cmd = pin_home + "pin -t " + \
-                  mypintool_dir + "obj-intel64/GetFloat.so -o {} -length {} -dump_point {} -dump_addr {} -- {} {}"
+inst_trace_cmd = (
+    f"time {pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/InstTrace.so -o {} -start {} -end {} -- {} {}"
+)
+timeout_inst_trace_cmd = (
+    f"time timeout 15s {pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/InstTrace.so -o {} -start {} -end {} -- {} {}"
+)
+timeout_mem_write_log_cmd = (
+    f"time timeout 15s {pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/MemoryWrite.so -o {} -start {} -end {} -- {} {}"
+)
+mem_write_log_cmd = (
+    f"time {pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/MemoryWrite.so -o {} -start {} -end {} -- {} {}"
+)
+mem_read_log_cmd = (
+    f"time {pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/MemoryRead.so -o {} -start {} -end {} -- {} {}"
+)
+mem_dump_log_cmd = (
+    f"time {pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/MemoryDump.so -o {} -length {} -dump_point {} -reg_num {} -- {} {}"
+)
+mem_dump_2_log_cmd = (
+    f"time {pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/MemoryDump_2.so -o {} -length {} -dump_point {} -data_index {} -- {} {}"
+)
+mem_dump_3_log_cmd = (
+    f"{pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/MemoryDump_3.so -o {} -length {} -dump_point {} -dump_addr {} -- {} {}"
+)
+single_dump_cmd = (
+    f"{pin_home}pin -t {mypintool_dir}"
+    + "obj-intel64/GetFloat.so -o {} -length {} -dump_point {} -dump_addr {} -- {} {}"
+)
 
-nnfusion_conv_cmd = pin_home + "pin -t " + \
-                    mypintool_dir + "obj-intel64/NNFusion_Conv.so" \
-                                    " -o {} -addrs_file {} -- {} {}"
-nnfusion_gemm_cmd = pin_home + "pin -t " + \
-                    mypintool_dir + "obj-intel64/NNFusion_Gemm.so" \
-                                    " -o {} -addrs_file {} -- {} {}"
-nnfusion_pool_cmd = pin_home + "pin -t " + \
-                    mypintool_dir + "obj-intel64/NNFusion_Pool.so" \
-                                    " -o {} -addrs_file {} -- {} {}"
-nnfusion_trace_cmd = pin_home + "pin -t " + \
-                     mypintool_dir + "obj-intel64/NNFusion_Trace.so" \
-                                     " -o {} -addrs_file {} -- {} {}"
+nnfusion_conv_cmd = (
+    f"{pin_home}pin -t {mypintool_dir}" + "obj-intel64/NNFusion_Conv.so"
+    " -o {} -addrs_file {} -- {} {}"
+)
+nnfusion_gemm_cmd = (
+    f"{pin_home}pin -t {mypintool_dir}" + "obj-intel64/NNFusion_Gemm.so"
+    " -o {} -addrs_file {} -- {} {}"
+)
+nnfusion_pool_cmd = (
+    f"{pin_home}pin -t {mypintool_dir}" + "obj-intel64/NNFusion_Pool.so"
+    " -o {} -addrs_file {} -- {} {}"
+)
+nnfusion_trace_cmd = (
+    f"{pin_home}pin -t {mypintool_dir}" + "obj-intel64/NNFusion_Trace.so"
+    " -o {} -addrs_file {} -- {} {}"
+)
 
 compile_tool_cmd = "make obj-intel64/{}.so TARGET=intel64"
 tools_list = ["InstTrace", "MemoryRead", "FunCallTrace", "MemoryWrite",
@@ -101,15 +128,15 @@ tools_list = ["InstTrace", "MemoryRead", "FunCallTrace", "MemoryWrite",
 def compile_all_tools():
     global project_dir
     for tool_name in tools_list:
-        print("copying {} source code to MyPinTool dir...".format(tool_name))
-        status, output = cmd("cp MyPinTool/{}.cpp {}".format(tool_name, config.pintool_dir))
+        print(f"copying {tool_name} source code to MyPinTool dir...")
+        status, output = cmd(f"cp MyPinTool/{tool_name}.cpp {config.pintool_dir}")
         if status != 0:
             print(output)
-    
+
     project_dir_backup = project_dir
     project_dir = mypintool_dir
     for tool_name in tools_list:
-        print("compiling {}...".format(tool_name))
+        print(f"compiling {tool_name}...")
         status, output = cmd(compile_tool_cmd.format(tool_name))
         if status != 0:
             print(output)
@@ -141,7 +168,7 @@ def fun_call_rdi_rsi(prog_path: str, input_data_path: str, addr_list: list, log_
 
     status, output = cmd(fun_call_rdi_rsi_cmd.format(log_path, addrs_file_path, prog_path, input_data_path))
 
-    status, output = cmd("rm {}".format(addrs_file_path))
+    status, output = cmd(f"rm {addrs_file_path}")
 
     # ------- end reset project_dir
     project_dir = project_dir_backup
@@ -168,7 +195,7 @@ def fun_call_rdx(prog_path: str, input_data_path: str, addr_list: list, log_path
 
     status, output = cmd(fun_call_rdx_cmd.format(log_path, addrs_file_path, prog_path, input_data_path))
 
-    status, output = cmd("rm {}".format(addrs_file_path))
+    status, output = cmd(f"rm {addrs_file_path}")
 
     # ------- end reset project_dir
     project_dir = project_dir_backup
@@ -190,7 +217,7 @@ def fused_rdi(prog_path: str, input_data_path: str, addr_list: list, log_path: s
 
     status, output = cmd(fused_rdi_cmd.format(log_path, addrs_file_path, prog_path, input_data_path))
 
-    status, output = cmd("rm {}".format(addrs_file_path))
+    status, output = cmd(f"rm {addrs_file_path}")
 
     # ------- end reset project_dir
     project_dir = project_dir_backup
@@ -214,7 +241,7 @@ def func_call_trace(prog_path: str, input_data_path: str, addr_list: list, log_p
 
     status, output = cmd(func_call_cmd.format(log_path, addrs_file_path, prog_path, input_data_path))
 
-    status, output = cmd("rm {}".format(addrs_file_path))
+    status, output = cmd(f"rm {addrs_file_path}")
 
     # ------- end reset project_dir
     project_dir = project_dir_backup
@@ -234,7 +261,7 @@ def mem_read_log(log_path: str, start_addr: str, end_addr: str, prog_path: str, 
     prog_path = os.path.abspath(prog_path)
     data_path = os.path.abspath(data_path)
     localtime = time.asctime( time.localtime(time.time()) )
-    logger.info("Mem Read Logging Start:" + localtime)
+    logger.info(f"Mem Read Logging Start:{localtime}")
 
     start_time = time.time()
     status, output = cmd(mem_read_log_cmd.format(log_path, start_addr, end_addr, prog_path, data_path))
@@ -244,9 +271,9 @@ def mem_read_log(log_path: str, start_addr: str, end_addr: str, prog_path: str, 
 
     # logger.info('Mem Read Logging Time - {}'.format(output[output.find('real'):]))  # time in Ubuntu 18.04
     # logger.info('Mem Read Logging Time - {}'.format(output[output.find('timing'):]))  # time in Ubuntu 20.04
-    logger.info('Mem Read Logging Time - {}s'.format(end_time - start_time))
+    logger.info(f'Mem Read Logging Time - {end_time - start_time}s')
     # print(output[output.find('real'):])
-    print("Mem Read Logging Time: {}s".format(end_time - start_time))
+    print(f"Mem Read Logging Time: {end_time - start_time}s")
     project_dir = project_dir_backup
 
 
@@ -259,7 +286,7 @@ def mem_write_log(log_path: str, start_addr: str, end_addr: str, prog_path: str,
     prog_path = os.path.abspath(prog_path)
     data_path = os.path.abspath(data_path)
     localtime = time.asctime( time.localtime(time.time()) )
-    logger.info("Mem Write Logging Start:" + localtime)
+    logger.info(f"Mem Write Logging Start:{localtime}")
 
     start_time = time.time()
     if timeout:
@@ -272,9 +299,9 @@ def mem_write_log(log_path: str, start_addr: str, end_addr: str, prog_path: str,
 
     #logger.info('Mem Write Logging Time - {}'.format(output[output.find('real'):]))  # time in Ubuntu 18.04
     #logger.info('Mem Write Logging Time - {}'.format(output[output.find('timing'):]))  # time in Ubuntu 20.04
-    logger.info('Mem Write Logging Time - {}s'.format(end_time - start_time))
+    logger.info(f'Mem Write Logging Time - {end_time - start_time}s')
     #print(output[output.find('real'):])
-    print("Mem Write Logging Time: {}s".format(end_time - start_time))
+    print(f"Mem Write Logging Time: {end_time - start_time}s")
     project_dir = project_dir_backup
 
 
@@ -288,8 +315,8 @@ def inst_trace_log(log_path: str, start_addr: str, end_addr: str, prog_path: str
     data_path = os.path.abspath(data_path)
     localtime = time.asctime( time.localtime(time.time()) )
     base_name = os.path.basename(log_path)
-    print ("Trace Logging for {} Start - {}".format(base_name, localtime))
-    logger.info('Trace Logging for {} Start - {}'.format(base_name, localtime))
+    print(f"Trace Logging for {base_name} Start - {localtime}")
+    logger.info(f'Trace Logging for {base_name} Start - {localtime}')
     start_time = time.time()
     if not timeout:
         status, output = cmd(inst_trace_cmd.format(log_path, start_addr, end_addr, prog_path, data_path))
@@ -299,8 +326,8 @@ def inst_trace_log(log_path: str, start_addr: str, end_addr: str, prog_path: str
         print(output)
 
     end_time = time.time()
-    logger.info('Trace Logging Time - {}'.format(end_time - start_time))
-    print('Trace Logging Time - {}'.format(end_time - start_time))
+    logger.info(f'Trace Logging Time - {end_time - start_time}')
+    print(f'Trace Logging Time - {end_time - start_time}')
     logger.info(output)
 
     project_dir = project_dir_backup
@@ -321,8 +348,8 @@ def dump_dwords(prog_path: str, input_data_path: str, inst_addr: str, dwords_len
         print(output)
     # logger.info('Dump Dwords Time - {}'.format(output[output.find('real'):]))
     # print(output[output.find('real'):])
-    logger.info('Dump Dwords Time - {}s'.format(end_time - start_time))
-    print('Dump Dwords Time - {}s'.format(end_time - start_time))
+    logger.info(f'Dump Dwords Time - {end_time - start_time}s')
+    print(f'Dump Dwords Time - {end_time - start_time}s')
     project_dir = project_dir_backup
 
 
@@ -333,7 +360,7 @@ def dump_dwords_2(prog_path: str, input_data_path: str, inst_addr: str, dwords_l
 
     localtime = time.asctime( time.localtime(time.time()) )
     print("Dump Dwords 2 Start", localtime)
-    logger.info('Dump Dwords 2 Start {}'.format(localtime))
+    logger.info(f'Dump Dwords 2 Start {localtime}')
     start_time = time.time()
     status, output = cmd(
         mem_dump_2_log_cmd.format(log_path, dwords_len, inst_addr, data_index, prog_path, input_data_path))
@@ -342,11 +369,11 @@ def dump_dwords_2(prog_path: str, input_data_path: str, inst_addr: str, dwords_l
         print(output)
 
     end_time = time.time()
-    
+
     # logger.info('Dump Dwords 2 Time - {}'.format(output[output.find('real'):]))
     # print(output[output.find('real'):])
-    logger.info('Dump Dwords 2 Time - {}s'.format(end_time - start_time))
-    print('Dump Dwords 2 Time - {}s'.format(end_time - start_time))
+    logger.info(f'Dump Dwords 2 Time - {end_time - start_time}s')
+    print(f'Dump Dwords 2 Time - {end_time - start_time}s')
     project_dir = project_dir_backup
 
 
@@ -380,7 +407,7 @@ def dump_single_dword(prog_path: str, input_data_path: str, inst_addr: str, dwor
 
 
 def rm_log(log_path: str):
-    status, output = cmd("rm {}".format(log_path))
+    status, output = cmd(f"rm {log_path}")
     # print(output)
     if status != 0:
         print(output)
@@ -418,7 +445,7 @@ def nnfusion_cmd(prog_path: str, input_data_path: str, addr_list: list, log_path
 
     status, output = cmd(cmdline.format(log_path, addrs_file_path, prog_path, input_data_path))
 
-    status, output = cmd("rm {}".format(addrs_file_path))
+    status, output = cmd(f"rm {addrs_file_path}")
 
     # ------- end reset project_dir
     project_dir = project_dir_backup
@@ -448,12 +475,10 @@ def tac_cmd(log_path: str, new_path: str):
     new_path = os.path.abspath(new_path)
     localtime = time.asctime( time.localtime(time.time()) )
     print ("Reverse Logging Start", localtime)
-    logger.info('Reverse Logging Start - {}'.format(new_path))
-    status, output = cmd("time tac {} > {}".format(log_path, new_path))
-    if status:
-        pass  # TODO: error log
-    logger.info('Reverse Trace Time - {}'.format(new_path))
-    print('Reverse Trace Time - {}'.format(new_path))
+    logger.info(f'Reverse Logging Start - {new_path}')
+    status, output = cmd(f"time tac {log_path} > {new_path}")
+    logger.info(f'Reverse Trace Time - {new_path}')
+    print(f'Reverse Trace Time - {new_path}')
     logger.info(output)
 
 

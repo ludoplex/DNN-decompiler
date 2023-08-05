@@ -34,7 +34,7 @@ def run_rebuilt_model(script_path: str, in_data=input_img):
     project_dir = target_dir
 
     script_name = os.path.basename(script_path)
-    status, output = cmd("python3.6 {} {}".format(script_name, in_data))
+    status, output = cmd(f"python3.6 {script_name} {in_data}")
 
     project_dir = tmp_dir
 
@@ -44,7 +44,7 @@ def run_rebuilt_model(script_path: str, in_data=input_img):
         print(output)
 
 def run_original_model(exe_path: str, in_data=input_img):
-    status, output = cmd("{} {}".format(exe_path, in_data))
+    status, output = cmd(f"{exe_path} {in_data}")
     if status == 0:
         return output
     else:
@@ -53,53 +53,46 @@ def run_original_model(exe_path: str, in_data=input_img):
 
 def compare_tvm(rebuilt_output: str, origi_output: str):
     global pass_count
-    mat = re.search(r"Result: (\d+)", rebuilt_output)
-    if mat:
-        rebuilt_label = int(mat.group(1))
+    if mat := re.search(r"Result: (\d+)", rebuilt_output):
+        rebuilt_label = int(mat[1])
 
-    mat = re.search(r"The maximum position in output vector is: (\d+),", origi_output)
-    if mat:
-        origi_label = int(mat.group(1))
+    if mat := re.search(
+        r"The maximum position in output vector is: (\d+),", origi_output
+    ):
+        origi_label = int(mat[1])
 
-    if rebuilt_label == origi_label:
-        pass_count += 1
-        return True
-    else:
+    if rebuilt_label != origi_label:
         return False
+    pass_count += 1
+    return True
 
 
 def compare_glow(rebuilt_output: str, origi_output: str):
     global pass_count
-    mat = re.search(r"Result: (\d+)", rebuilt_output)
-    if mat:
-        rebuilt_label = int(mat.group(1))
+    if mat := re.search(r"Result: (\d+)", rebuilt_output):
+        rebuilt_label = int(mat[1])
 
-    mat = re.search(r"Result: (\d+)", origi_output)
-    if mat:
-        origi_label = int(mat.group(1))
+    if mat := re.search(r"Result: (\d+)", origi_output):
+        origi_label = int(mat[1])
 
-    if rebuilt_label == origi_label:
-        pass_count += 1
-        return True
-    else:
+    if rebuilt_label != origi_label:
         return False
+    pass_count += 1
+    return True
 
 
 def compare_fasttext(rebuilt_output: str, origi_output: str):
     global pass_count
-    mat = re.search(r"(\d+\.\d+)", rebuilt_output)
-    if mat:
-        rebuilt_label = float(mat.group(1))
+    if mat := re.search(r"(\d+\.\d+)", rebuilt_output):
+        rebuilt_label = float(mat[1])
 
-    mat = re.search(r"(\d+\.\d+)", origi_output)
-    if mat:
-        origi_label = float(mat.group(1))
+    if mat := re.search(r"(\d+\.\d+)", origi_output):
+        origi_label = float(mat[1])
 
-    if abs(rebuilt_label - origi_label) < 0.01:
-        pass_count += 1
-        return True
-    else:
+    if abs(rebuilt_label - origi_label) >= 0.01:
         return False
+    pass_count += 1
+    return True
 
 
 if __name__ == '__main__':
@@ -439,4 +432,4 @@ if __name__ == '__main__':
     o2 = run_original_model(os.path.join(data_dir, "embedding/embedding_glow"), '')
     print("Pass") if compare_fasttext(o1, o2) else print("Failed")
 
-    print("Overall: {}/63 models are correctly rebuilt.".format(pass_count))
+    print(f"Overall: {pass_count}/63 models are correctly rebuilt.")

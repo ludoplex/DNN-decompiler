@@ -9,8 +9,8 @@ import utils
 import se_engine
 import logging
 from fused_trace import fuse_batchnorm
-print('get logger: {}'.format('decompiler.'+__name__))
-logger = logging.getLogger('decompiler.'+__name__)
+print(f'get logger: decompiler.{__name__}')
+logger = logging.getLogger(f'decompiler.{__name__}')
 
 
 if __name__ == '__main__':
@@ -48,9 +48,9 @@ if __name__ == '__main__':
     # ==============================================================
     # Step 2 --- Recover the Shape of each Layer
     # ==============================================================
-    
+
     # Step 2.1 Generate and Filter Trace
-    
+
     logger.info('START')
     func_trace_map = {}
     func_rndaddr_map = {}
@@ -66,7 +66,7 @@ if __name__ == '__main__':
                         trace_filter.get_trace(asm_path, prog_path, in_data, trace_path, compiler='tvm', func_type=utils.addr2label[start_addr])
                     func_trace_map[asm_file] = slice_log
                     func_rndaddr_map[asm_file] = (rnd_addr, loop_size, start_addr, end_addr)
-                    
+
     # print(func_trace_map)
     # print(func_rndaddr_map)
     logger.info('END')
@@ -98,14 +98,14 @@ if __name__ == '__main__':
         else:
             print(result)
     # exit(0)
-    
+
     # ==============================================================
-    
+
     # Step 2.2.2 Other layers
-    
+
     asm_files = os.listdir(utils.funcs_dir)
     se_engine.extern_functions = {'0x401130': 'memset', '0x401080': 'expf'}  # address in .plt, name
-    results_dict = dict()
+    results_dict = {}
     for asm_file in asm_files:
         if 'labels' not in asm_file and asm_file.endswith('.txt'):
             asm_path = os.path.join(utils.funcs_dir, asm_file)
@@ -117,8 +117,8 @@ if __name__ == '__main__':
                     if 'clip' in func_type:
                         print('debug')
 
-                    print('\nSE for {}, {}'.format(asm_file, func_type))
-                    tmp_log_path = os.path.basename(asm_file)[:-4] + '.log'
+                    print(f'\nSE for {asm_file}, {func_type}')
+                    tmp_log_path = f'{os.path.basename(asm_file)[:-4]}.log'
                     # gnereate tmp trace file, it should be fast
                     utils.generate_inst_trace(asm_file, tmp_log_path, prog_path, in_data, timeout=True)
                     # symbolic execution, also should be fast
@@ -132,15 +132,12 @@ if __name__ == '__main__':
     for name, result in results_dict.items():
         for i in range(len(func_meta_data)):
             if func_meta_data[i][0] == name:
-                if isinstance(result, float):
-                    func_meta_data[i][1] = [1, result]
-                else:
-                    func_meta_data[i][1] = result
+                func_meta_data[i][1] = [1, result] if isinstance(result, float) else result
                 break
         print(name)
         print(result)
     # exit(0)
-    
+
     # ==============================================================
     # Step 3 --- Extract Weights/Biases from Binary (dynamically)
     # ==============================================================
@@ -158,13 +155,13 @@ if __name__ == '__main__':
             meta_data[5] = int(meta_data[1][1][3] / meta_data[1][2][3])
             meta_data[4] = math.ceil((meta_data[1][1][3] - meta_data[1][2][3] * meta_data[5]) / 2)
             new_meta_data.append(meta_data)
-        elif meta_data[3] == 'dense' or meta_data[3] == 'bias_add' or meta_data[3] == 'add' or meta_data[3] == 'gamma' or meta_data[3] == 'beta':
+        elif meta_data[3] in ['dense', 'bias_add', 'add', 'gamma', 'beta']:
             meta_data[6] = 1
             new_meta_data.append(meta_data)
-        elif meta_data[3] == 'mean' or meta_data[3] == 'var':
+        elif meta_data[3] in ['mean', 'var']:
             meta_data[6] = 0
             new_meta_data.append(meta_data)
-        
+
     func_meta_data = new_meta_data
     for meta_data in func_meta_data:
         if meta_data[6]:
@@ -187,5 +184,5 @@ if __name__ == '__main__':
         for i in range(len(w_shape)):
             if isinstance(w_shape[i], float):
                 w_shape[i] = int(w_shape[i])
-        
+
         utils.extract_params_tvm(prog_path, in_data, w_shape, dump_point, mem_dump_log_path, func_name, func_type, data_index)

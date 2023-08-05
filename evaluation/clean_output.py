@@ -16,12 +16,10 @@ def clean_output():
             if mat1 or mat2 or mat3 or mat4:
                 #print os.path.join(subdir, file)
                 filepath = os.path.join(subdir, file)
-                print("rm {}".format(filepath))
-                status, output = subprocess.getstatusoutput("rm {}".format(filepath))
+                print(f"rm {filepath}")
+                status, output = subprocess.getstatusoutput(f"rm {filepath}")
                 if status:
                     print(output)
-            else:
-                pass
 
 if __name__ == '__main__':
     clean_output()

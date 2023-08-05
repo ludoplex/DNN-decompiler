@@ -11,9 +11,7 @@ import collections
 def is_integer_num(n):
     if isinstance(n, int):
         return True
-    if isinstance(n, float):
-        return n.is_integer()
-    return False
+    return n.is_integer() if isinstance(n, float) else False
 
 
 def smallest_region(mem_regions: list, target_addr=0, min_size=0):
@@ -24,10 +22,7 @@ def smallest_region(mem_regions: list, target_addr=0, min_size=0):
             small_mem = mem_blk
         if mem_blk[0] <= target_addr <= mem_blk[1]:
             target_mem = mem_blk
-    if target_addr == 0:
-        return small_mem
-    else:
-        return target_mem
+    return small_mem if target_addr == 0 else target_mem
 
 
 def biggest_region(mem_regions: list, target_addr=0):
@@ -40,10 +35,7 @@ def biggest_region(mem_regions: list, target_addr=0):
             target_mem = mem_blk
         elif (target_mem[1] - target_mem[0]) != 0 and (target_mem[1] - target_mem[0]) == mem_blk[1] - mem_blk[0]:
             target_mem = mem_blk
-    if target_addr == 0:
-        return big_mem
-    else:
-        return target_mem
+    return big_mem if target_addr == 0 else target_mem
 
 
 def region_with_target(mem_regions: list, target_addr: int):
@@ -64,10 +56,7 @@ def biggest_last_region(mem_regions: list, target_addr=0):
             target_mem = mem_blk
         elif (target_mem[1] - target_mem[0]) != 0 and (target_mem[1] - target_mem[0]) == mem_blk[1] - mem_blk[0]:
             target_mem = mem_blk
-    if target_addr == 0:
-        return big_mem
-    else:
-        return target_mem
+    return big_mem if target_addr == 0 else target_mem
 
 
 def get_write_addr_list(exp_log_path: str):
@@ -92,11 +81,9 @@ def choose_one_4bytes(exp_log_path: str, mem_write_regions=[], num=0):
     else:
         out_mem = biggest_region(mem_write_regions)
     write_addr_list = get_write_addr_list(exp_log_path)
-    use_out_mem_flag = False
-    for addr in write_addr_list:
-        if out_mem[0] <= addr <= out_mem[1]:
-            use_out_mem_flag = True
-            break
+    use_out_mem_flag = any(
+        out_mem[0] <= addr <= out_mem[1] for addr in write_addr_list
+    )
     if not use_out_mem_flag:
         out_mem = (0, 0xffffffff)
     exp_log_path = os.path.abspath(exp_log_path)
@@ -115,11 +102,10 @@ def choose_one_4bytes(exp_log_path: str, mem_write_regions=[], num=0):
             index += 1
             if (not tmp_name.endswith(',4')) or tmp_name.startswith('0x7ff'):
                 continue
-            else:  # choose the longest expression of one 4 bytes memory block
-                if out_mem[0] <= int(tmp_name.split(',')[0], 16) <= out_mem[1]:
-                    if tmp_exp.count('*') > exp.count('*'):
-                        name = tmp_name
-                        exp = tmp_exp
+            if out_mem[0] <= int(tmp_name.split(',')[0], 16) <= out_mem[1]:
+                if tmp_exp.count('*') > exp.count('*'):
+                    name = tmp_name
+                    exp = tmp_exp
         return name, exp
 
 
@@ -129,11 +115,9 @@ def choose_one_8bytes(exp_log_path: str, mem_write_regions=[], num=0):
     else:
         out_mem = biggest_region(mem_write_regions)
     write_addr_list = get_write_addr_list(exp_log_path)
-    use_out_mem_flag = False
-    for addr in write_addr_list:
-        if out_mem[0] <= addr <= out_mem[1]:
-            use_out_mem_flag = True
-            break
+    use_out_mem_flag = any(
+        out_mem[0] <= addr <= out_mem[1] for addr in write_addr_list
+    )
     if not use_out_mem_flag:
         out_mem = (0, 0xffffffff)
     exp_log_path = os.path.abspath(exp_log_path)
@@ -152,25 +136,22 @@ def choose_one_8bytes(exp_log_path: str, mem_write_regions=[], num=0):
             index += 1
             if (not tmp_name.endswith(',8')) or tmp_name.startswith('0x7ff'):
                 continue
-            else:  # choose the longest expression of one 4 bytes memory block
-                if out_mem[0] <= int(tmp_name.split(',')[0], 16) <= out_mem[1]:
-                    if tmp_exp.count('*') > exp.count('*'):
-                        name = tmp_name
-                        exp = tmp_exp
+            if out_mem[0] <= int(tmp_name.split(',')[0], 16) <= out_mem[1]:
+                if tmp_exp.count('*') > exp.count('*'):
+                    name = tmp_name
+                    exp = tmp_exp
         return name, exp
 
 
 def choose_one_16bytes(exp_log_path: str, mem_write_regions: list, num=0):
-    if len(mem_write_regions) == 0:
+    if not mem_write_regions:
         out_mem = (0, 0xffffffff)
     else:
         out_mem = biggest_region(mem_write_regions)
     write_addr_list = get_write_addr_list(exp_log_path)
-    use_out_mem_flag = False
-    for addr in write_addr_list:
-        if out_mem[0] <= addr <= out_mem[1]:
-            use_out_mem_flag = True
-            break
+    use_out_mem_flag = any(
+        out_mem[0] <= addr <= out_mem[1] for addr in write_addr_list
+    )
     if not use_out_mem_flag:
         out_mem = (0, 0xffffffff)
     exp_log_path = os.path.abspath(exp_log_path)
@@ -202,11 +183,9 @@ def choose_one_16bytes(exp_log_path: str, mem_write_regions: list, num=0):
 def choose_one_bytes(exp_log_path: str, mem_write_regions: list, size=4, num=0):
     out_mem = biggest_region(mem_write_regions)
     write_addr_list = get_write_addr_list(exp_log_path)
-    use_out_mem_flag = False
-    for addr in write_addr_list:
-        if out_mem[0] <= addr <= out_mem[1]:
-            use_out_mem_flag = True
-            break
+    use_out_mem_flag = any(
+        out_mem[0] <= addr <= out_mem[1] for addr in write_addr_list
+    )
     if not use_out_mem_flag:
         out_mem = (0, 0xffffffff)
     exp_log_path = os.path.abspath(exp_log_path)
@@ -280,7 +259,7 @@ def get_output_channel(exp: str, one_channel_size: int, mem_regions: list, compi
     output_channel = (weights_region[1] - weights_region[0]) / 4 / filter_size
     """
     big_mem = (0, 0)
-    if compiler == 'tvm' or compiler == 'glow':
+    if compiler in ['tvm', 'glow']:
         for mem_blk in mem_regions:
             if (mem_blk[1] - mem_blk[0]) > (big_mem[1] - big_mem[0]):
                 big_mem = mem_blk
@@ -307,11 +286,7 @@ def get_input_shape(name, exp, mem_regions, input_channel, size):
 # can we assume that we know the start addresses of inputs and output?
 def explain_tvm_conv2d_result(exp_log_path: str, mem_read_regions: list, mem_write_regions: list, guess_stride=1,
                               optimized=False):
-    # assume the mem_log comes from a convolution layer
-    tmp_mem_write_regions = []
-    if not optimized:
-        tmp_mem_write_regions = mem_write_regions
-
+    tmp_mem_write_regions = mem_write_regions if not optimized else []
     name, exp = choose_one_4bytes(exp_log_path, tmp_mem_write_regions)
     if len(name) == 0:
         name, exp = choose_one_16bytes(exp_log_path, tmp_mem_write_regions)  # TODO
@@ -336,6 +311,7 @@ def explain_tvm_conv2d_result(exp_log_path: str, mem_read_regions: list, mem_wri
     output_shape = [1, 1, 1, 1]
 
     blk_size = 0
+    special_flag = False
     if len(mem_read_regions) > 18:
         kernel_num, input_num, blk_size, in_mem = kernel_1_1(name, exp, mem_read_regions, mem_write_regions)
         filter_shape[1] = kernel_num
@@ -345,7 +321,6 @@ def explain_tvm_conv2d_result(exp_log_path: str, mem_read_regions: list, mem_wri
         # print('special case: stride 2')
         weights_mem = (0, 0)  # will be identified in function
         weight_list = []
-        special_flag = False
     else:
         # get the filter shape and input shape from first output
         in_mem = (0, 0)  # biggest_region(mem_read_regions)  # biggest not necessarily to be the input
@@ -366,7 +341,6 @@ def explain_tvm_conv2d_result(exp_log_path: str, mem_read_regions: list, mem_wri
         else:
             weights_mem = region_with_target(mem_read_regions, weight_list[0])
 
-        special_flag = False
         stride = offset_list[1] - offset_list[0]  # not the real stride
         index = 0
         while index < len(offset_list) - 1:
@@ -453,57 +427,53 @@ def explain_tvm_conv2d_result(exp_log_path: str, mem_read_regions: list, mem_wri
     output_shape[1] = output_channel
     filter_shape[0] = output_shape[1]
 
-    # since the stride and padding are guessed, we need to check if the shapes are reasonable
-    ignore_flag = is_ignore(mem_list, mem_read_regions, filter_shape, weights_mem)
-
-    if not ignore_flag:
-        # try to get the weights layout indicators
-        ind_a, ind_b, smooth = get_weights_layout_info(mem_list[0][1], mem_read_regions, weights_mem=weights_mem,
-                                                       weights_offset_list=weight_list, special_flag=special_flag)
+    if ignore_flag := is_ignore(
+        mem_list, mem_read_regions, filter_shape, weights_mem
+    ):
+        # print('input shape', input_shape)
+        # print('filter shape', filter_shape)
+        # print('output shape', output_shape)
+        # print('not a reasonable guess, ignored')
+        return filter_shape, input_shape, output_shape, (0, 0, 0, 0, 0, 0)
+    # try to get the weights layout indicators
+    ind_a, ind_b, smooth = get_weights_layout_info(mem_list[0][1], mem_read_regions, weights_mem=weights_mem,
+                                                   weights_offset_list=weight_list, special_flag=special_flag)
         # print('ind_a {}, ind_b {}, smooth {}'.format(ind_a, ind_b, smooth))
         # final shape, for debugging
         # print('input shape', input_shape)
         # print('filter shape', filter_shape)
         # print('output shape', output_shape)
         # print('layout indicators: {}, {}'.format(ind_a, ind_b))
-        if optimized and not special_flag:
-            if blk_size:  # kernel --> 1, 1
-                ind_a = blk_size
-                layout_shape = [filter_shape[0] / ind_b, filter_shape[1] / ind_a, filter_shape[2], filter_shape[3],
-                                ind_a, ind_b]
-            elif not smooth:
-                layout_shape = [filter_shape[0] / ind_b, filter_shape[1] / ind_a, filter_shape[2], filter_shape[3],
-                                ind_a, ind_b]
-            elif filter_shape[1] > ind_a and (filter_shape[1] % ind_a) == 0:
-                layout_shape = [filter_shape[0] / ind_b, ind_a, filter_shape[2], filter_shape[3],
-                                filter_shape[1] / ind_a, ind_b]
-            elif filter_shape[1] <= ind_a or (filter_shape[1] % ind_a) != 0:
-                layout_shape = [filter_shape[0] / ind_b, 1, filter_shape[2], filter_shape[3], filter_shape[1], ind_b]
-        elif optimized and special_flag:
-            if filter_shape[1] == 1:  # group conv
-                layout_shape = [filter_shape[0] / ind_b, 1, filter_shape[2], filter_shape[3], 1, ind_b]
-            elif filter_shape[0] > ind_a and (filter_shape[0] % ind_a) == 0:
-                layout_shape = [ind_a, filter_shape[1] / ind_b, filter_shape[2], filter_shape[3],
-                                filter_shape[0] / ind_a, ind_b]
-            elif filter_shape[0] <= ind_a or (filter_shape[0] % ind_a) != 0:
-                layout_shape = [1, filter_shape[1] / ind_b, filter_shape[2], filter_shape[3], filter_shape[0], ind_b]
-            else:
-                assert False, 'currently not implemented.'
+    if optimized and not special_flag:
+        if blk_size:  # kernel --> 1, 1
+            ind_a = blk_size
+            layout_shape = [filter_shape[0] / ind_b, filter_shape[1] / ind_a, filter_shape[2], filter_shape[3],
+                            ind_a, ind_b]
+        elif not smooth:
+            layout_shape = [filter_shape[0] / ind_b, filter_shape[1] / ind_a, filter_shape[2], filter_shape[3],
+                            ind_a, ind_b]
+        elif filter_shape[1] > ind_a and (filter_shape[1] % ind_a) == 0:
+            layout_shape = [filter_shape[0] / ind_b, ind_a, filter_shape[2], filter_shape[3],
+                            filter_shape[1] / ind_a, ind_b]
         else:
-            layout_shape = filter_shape
-        # print('layout shape', layout_shape)
-        # print('stride {}'.format(guess_stride))
-        return filter_shape, input_shape, output_shape, layout_shape
+            layout_shape = [filter_shape[0] / ind_b, 1, filter_shape[2], filter_shape[3], filter_shape[1], ind_b]
+    elif optimized:
+        if filter_shape[1] == 1:  # group conv
+            layout_shape = [filter_shape[0] / ind_b, 1, filter_shape[2], filter_shape[3], 1, ind_b]
+        elif filter_shape[0] > ind_a and (filter_shape[0] % ind_a) == 0:
+            layout_shape = [ind_a, filter_shape[1] / ind_b, filter_shape[2], filter_shape[3],
+                            filter_shape[0] / ind_a, ind_b]
+        else:
+            layout_shape = [1, filter_shape[1] / ind_b, filter_shape[2], filter_shape[3], filter_shape[0], ind_b]
     else:
-        # print('input shape', input_shape)
-        # print('filter shape', filter_shape)
-        # print('output shape', output_shape)
-        # print('not a reasonable guess, ignored')
-        return filter_shape, input_shape, output_shape, (0, 0, 0, 0, 0, 0)
+        layout_shape = filter_shape
+    # print('layout shape', layout_shape)
+    # print('stride {}'.format(guess_stride))
+    return filter_shape, input_shape, output_shape, layout_shape
 
 
 def get_splited_in_mem(mem_read_regions: list):
-    target_size = dict()
+    target_size = {}
     for mem_blk in mem_read_regions:
         mem_size = mem_blk[1] - mem_blk[0]
         if mem_size in target_size:
@@ -538,7 +508,7 @@ def kernel_1_1(name, exp, mem_read_regions: list, mem_write_regions: list, compi
     """ function to handle layer with 1*1 kernel """
     mem_start = 0x7f0000000000
     mem_end = 0
-    target_size = dict()
+    target_size = {}
     for mem_blk in mem_read_regions:
         mem_size = mem_blk[1] - mem_blk[0]
         if mem_size in target_size:

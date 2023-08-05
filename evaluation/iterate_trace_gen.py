@@ -39,16 +39,15 @@ rm_cmd_str = "rm /export/d1/zliudc/DLE_Decompiler/TVM/rebuild_ida/Glow-2021/ince
 count = 0
 
 def once():
-    global project_dir, count 
+    global project_dir, count
     file_size = os.path.getsize("/export/d1/zliudc/DLE_Decompiler/TVM/rebuild_ida/Glow-2021/inception_v1/0102_slice.log")
-    if file_size < 1800000:
-        status, output = cmd(rm_cmd_str)
-        status, output = cmd(cmd_str)
-        count += 1
-        print('re-generate times:', count)
-        return False
-    else:
+    if file_size >= 1800000:
         return True
+    status, output = cmd(rm_cmd_str)
+    status, output = cmd(cmd_str)
+    count += 1
+    print('re-generate times:', count)
+    return False
 
 
 def find_one():

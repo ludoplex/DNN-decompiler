@@ -4,8 +4,8 @@ import re
 import math
 import time
 import logging
-print('get logger: {}'.format('decompiler.'+__name__))
-logger = logging.getLogger('decompiler.'+__name__)
+print(f'get logger: decompiler.{__name__}')
+logger = logging.getLogger(f'decompiler.{__name__}')
 
 # from e9patch_tools import all_inst_trace_2, all_inst_trace_1
 import explain
@@ -15,9 +15,8 @@ import explain
 # // Utilities
 # /* ===================================================================== */
 def get_range(asm_path: str):
-    f = open(asm_path, 'r')
-    asm_txt = f.read()
-    f.close()
+    with open(asm_path, 'r') as f:
+        asm_txt = f.read()
     asm_lines = asm_txt.split('\n')
     start_line = 0
     end_line = len(asm_lines) - 1
@@ -51,8 +50,7 @@ def parse_asm_line(asm_line: str):
     operand_str = asm_line[blank_1:]
     operands = operand_str.split(',')
     code_list = [mnemonic.strip()]
-    for op in operands:
-        code_list.append(op.strip())
+    code_list.extend(op.strip() for op in operands)
     return code_list
 
 
@@ -68,7 +66,7 @@ def parse_mem_line(mem_line: str):
 
 def parse_three_lines(log_line: str, mem_line: str, mem_value_line: str):
     # is the end?
-    if not log_line.startswith('0x') or not (mem_line[0] in 'RWN'):  # Read, Write, NoMem
+    if not log_line.startswith('0x') or mem_line[0] not in 'RWN':  # Read, Write, NoMem
         return
 
     # handle different instructions

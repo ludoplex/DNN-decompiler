@@ -9,8 +9,8 @@ import random
 import explain
 import pin_tools
 import logging
-print('get logger: {}'.format('decompiler.'+__name__))
-logger = logging.getLogger('decompiler.'+__name__)
+print(f'get logger: decompiler.{__name__}')
+logger = logging.getLogger(f'decompiler.{__name__}')
 
 
 def get_early_stop(asm_path: str, compiler='glow', func_type='conv'):
@@ -38,11 +38,8 @@ def get_early_stop(asm_path: str, compiler='glow', func_type='conv'):
                     else:
                         loop_count = 1
                     break
-    if loop_count >= 16:
-        early_stop = line.split(':')[0]
-    else:
-        early_stop = ''
-    logger.debug('early_stop: {}, loop_count: {}'.format(early_stop, loop_count))
+    early_stop = line.split(':')[0] if loop_count >= 16 else ''
+    logger.debug(f'early_stop: {early_stop}, loop_count: {loop_count}')
     return early_stop, loop_count
 
 
@@ -64,9 +61,9 @@ def log_trace(asm_path: str, prog_path: str, in_data: str, out_log_path: str, co
 
     timeout_flag = False
     if not os.path.exists(log_path):
-        pin_tools.inst_trace_log(log_path, start_addr, end_addr, prog_path, data_path, timeout=timeout_flag)            
+        pin_tools.inst_trace_log(log_path, start_addr, end_addr, prog_path, data_path, timeout=timeout_flag)
     else:
-        print('{} already exists.'.format(log_path))
+        print(f'{log_path} already exists.')
     return start_addr, end_addr
 
 
@@ -76,7 +73,7 @@ def reverse_trace(original_trace: str, new_trace: str):
     if not os.path.exists(new_trace):
         pin_tools.tac_cmd(original_trace, new_trace)
     else:
-        print('{} already exists.'.format(new_trace))
+        print(f'{new_trace} already exists.')
 
 
 def pick_rand_addr(func_asm_path: str, prog_path: str, in_data: str, mem_write_log_path: str, compiler='glow', func_type='conv', func_info=[]):
@@ -90,7 +87,7 @@ def pick_rand_addr(func_asm_path: str, prog_path: str, in_data: str, mem_write_l
     early_stop, loop_size = get_early_stop(func_asm_path, compiler, func_type)
     if len(early_stop) != 0:
         end_addr = early_stop  # this only work on TVM
-    
+
     utils.mem_write_log(mem_write_log_path, start_addr, end_addr, prog_path, in_data, timeout=timeout_flag)
     write_mem_regions = utils.memory_slices(mem_write_log_path)
     # print('debug (write_mem_regions):', write_mem_regions)
@@ -101,14 +98,15 @@ def pick_rand_addr(func_asm_path: str, prog_path: str, in_data: str, mem_write_l
         for mem_blk in write_mem_regions:
             if mem_blk[0] <= output_addr <= mem_blk[1]:
                 out_mem = mem_blk
-        assert out_mem[0] != 0, "failed to identify the output memory block. write_mem_regions: {}, func_info: {}.".format(write_mem_regions, func_info)
-    else:
-        if compiler == 'glow':
-            out_mem = explain.biggest_region(write_mem_regions)
-        elif compiler == 'tvm' and len(write_mem_regions) > 5:
-            out_mem = explain.smallest_region(write_mem_regions)
-        elif compiler == 'tvm' and len(write_mem_regions) <= 5:
-            out_mem = explain.biggest_last_region(write_mem_regions)
+        assert (
+            out_mem[0] != 0
+        ), f"failed to identify the output memory block. write_mem_regions: {write_mem_regions}, func_info: {func_info}."
+    elif compiler == 'glow':
+        out_mem = explain.biggest_region(write_mem_regions)
+    elif compiler == 'tvm' and len(write_mem_regions) > 5:
+        out_mem = explain.smallest_region(write_mem_regions)
+    elif compiler == 'tvm':
+        out_mem = explain.biggest_last_region(write_mem_regions)
     '''
     # this optimization does not work
     if len(early_stop)!=0 and compiler == 'glow':
@@ -118,14 +116,14 @@ def pick_rand_addr(func_asm_path: str, prog_path: str, in_data: str, mem_write_l
             out_mem = (out_mem[0], early_part)
         print('after', out_mem[1]-out_mem[0])  # debug
     '''
-    print('({}, {})'.format(hex(out_mem[0]), hex(out_mem[1])))
+    print(f'({hex(out_mem[0])}, {hex(out_mem[1])})')
     rnd_addr = random.randrange(out_mem[0], out_mem[1], 4)
-    
+
     # mid_addr = out_mem[0] + (out_mem[1] - out_mem[0])/2
     # mid_addr = int(mid_addr)
     # mid_addr = hex(mid_addr)
     rnd_addr = hex(rnd_addr)
-    logger.debug('rand_addr: {}, loop_size: {}'.format(rnd_addr, loop_size))
+    logger.debug(f'rand_addr: {rnd_addr}, loop_size: {loop_size}')
     return rnd_addr, loop_size
 
 
@@ -135,7 +133,7 @@ def before_taint(asm_path: str, prog_path: str, data_path: str, log_path: str, c
     start_addr, end_addr = log_trace(asm_path, prog_path, data_path, log_path, compiler, func_type)
     # Reverse trace
     reverse_trace(log_path, rev_log_path)
-    logger.debug('log_path: {}, reverse_log_path: {}'.format(log_path, rev_log_path))
+    logger.debug(f'log_path: {log_path}, reverse_log_path: {rev_log_path}')
     # Random pick a target address
     tmp_mem_write_log = './tmp_mem_write.log'
     rnd_addr, loop_size = pick_rand_addr(asm_path, prog_path, data_path, tmp_mem_write_log, compiler, func_type, func_info=func_info)
@@ -264,7 +262,7 @@ def reverse_taint(re_trace_log: str, new_trace: str):
     start_time = time.time()
     localtime = time.asctime( time.localtime(time.time()) )
     print ("Taint Analysis Start", localtime)
-    logger.info("Taint Analysis Start - {}".format(new_trace))
+    logger.info(f"Taint Analysis Start - {new_trace}")
 
     reverse_log = os.path.abspath(re_trace_log)
     new_trace_log = os.path.abspath(new_trace)
@@ -316,7 +314,7 @@ def reverse_taint(re_trace_log: str, new_trace: str):
 
     end_time = time.time()
     elapsed_time = end_time - start_time
-    logger.info("Taint Analysis - Elapsed Time: {}s".format(elapsed_time))
+    logger.info(f"Taint Analysis - Elapsed Time: {elapsed_time}s")
 
     # write final_bufs to file
     final_bufs.reverse()
@@ -328,98 +326,86 @@ def reverse_taint(re_trace_log: str, new_trace: str):
 
 
 def handle_inst(read_buf: list):
-    if len(read_buf) < 1:
+    if not read_buf:
         return False
-    # Return Ture if current should be kept, False otherwise
-    # In which caese, current instruction should be kept?
-    # Rules:
-    # (1) if one tainted obj is written, rm it from tainted objs and set read objs as tainted
-    # (2) if one tainted obj is read then written, kept it as tainted add other read objs as tainted
-    # (3) xor eax, eax -- rm eax from tainted objs
-    if read_buf[0].startswith('0x'):
-        line = read_buf[0]
-        # print(line)  # debug
+    if not read_buf[0].startswith('0x'):
+        return False
+    line = read_buf[0]
+    # print(line)  # debug
 
-        # Step 1: parse one trace line
-        addr, line = line.split(':')
-        addr = addr.strip()
-        line = line.strip()
-        if ' ' in line:
-            opcode, operands = line[:line.find(' ')], line[line.find(' ') + 1:]
-            if ',' in operands:
-                operands = operands.split(',')
-                for operand in operands:
-                    operand = [operand.strip()]
-            else:
-                tmp_op = operands
-                operands = [tmp_op]
+    # Step 1: parse one trace line
+    addr, line = line.split(':')
+    addr = addr.strip()
+    line = line.strip()
+    if ' ' in line:
+        opcode, operands = line[:line.find(' ')], line[line.find(' ') + 1:]
+        if ',' in operands:
+            operands = operands.split(',')
+            for operand in operands:
+                operand = [operand.strip()]
         else:
-            opcode = line
-            operands = []
-
-        # does this instruction shoule be checked?
-        if opcode.startswith('data') or opcode.startswith('nop') or opcode.startswith('test'):  # cna be ignored
-            return False
-        elif opcode.startswith('call'):
-            set_call_state()  # for function call
-        elif not check_operands(operands, read_buf[1]):  # read_buf[1] -> mem read/write addr
-            return False
-
-        # debug
-        # print(read_buf)
-
-        mem_line = read_buf[1]
-        mem_addr = mem_line.split(':')[1].strip()
-        if opcode.startswith('j'):
-            kept = False
-        elif opcode.startswith('unpck') or opcode.startswith('movlh') or opcode.startswith('movhl'):
-            kept = handle_two_arith(opcode, operands, mem_addr)  # although it is not arithmetic instruction
-        elif opcode.startswith('mov') and (opcode.endswith('ps') or opcode.endswith('ss') or opcode.endswith('sd') or opcode.endswith('qa')):
-            kept = handle_two(opcode, operands, mem_addr)  # mov related to xmm regs 
-        elif opcode.startswith('mov') or opcode.startswith('lea'):
-            if check_operands(operands, read_buf[1]):
-                kept = handle_mov(opcode, operands, mem_addr)
-            else:
-                kept = False
-            # kept = True  # try to keep all mov instructions  # NO, DEFINITELY NO!
-        elif opcode.startswith('call'):
-            kept = True  # keep function calls  to memset and expf for TVM
-            unset_common_regs('rax')
-        elif opcode.startswith('xor') or opcode.startswith('pxor'):
-            kept = handle_xor(opcode, operands, mem_addr)
-        elif opcode.startswith('vmovss') or opcode.startswith('vmovups') or opcode.startswith('vmovaps'):
-            kept = handle_two(opcode, operands, mem_addr)  # mov realted to xmm regs
-        elif opcode.startswith('vbroadcastss'):
-            kept = handle_two(opcode, operands, mem_addr)
-        elif opcode.startswith('vminss') or opcode.startswith('vmaxss') or \
-                opcode.startswith('vaddss') or opcode.startswith('vmulss') or opcode.startswith('vaddps'):
-            kept = handle_three(opcode, operands, mem_addr)
-        elif opcode.startswith('minps') or opcode.startswith('minss') or opcode.startswith('maxss') or \
-                opcode.startswith('addss') or opcode.startswith('mulss') or opcode.startswith('maxps') or \
-                opcode.startswith('addps') or opcode.startswith('mulps'):
-            kept = handle_two_arith(opcode, operands, mem_addr)
-        elif opcode.startswith('vfmadd231ss') or opcode.startswith('vfmadd213ps') or \
-                opcode.startswith('vfmadd231ps') or opcode.startswith('vfmadd132ss') or \
-                opcode.startswith('vfmadd213ss'):
-            kept = handle_three(opcode, operands, mem_addr, read_op1=True)
-        elif opcode.startswith('vxorps'):
-            # print(read_buf[0])  # debug
-            kept = handle_vxor(opcode, operands, mem_addr)
-        elif opcode.startswith('shufps'):
-            kept = False  # shufps is not modeled 
-            pass
-        elif opcode.startswith('nop'):
-            kept = False
-            pass
-        else:
-            handle_not_implemented(opcode, operands)
-        if kept:  # debug
-            pass  # print('added')
-        else:
-            pass  # print('not')
-        return kept
+            tmp_op = operands
+            operands = [tmp_op]
     else:
+        opcode = line
+        operands = []
+
+    # does this instruction shoule be checked?
+    if opcode.startswith('data') or opcode.startswith('nop') or opcode.startswith('test'):  # cna be ignored
         return False
+    elif opcode.startswith('call'):
+        set_call_state()  # for function call
+    elif not check_operands(operands, read_buf[1]):  # read_buf[1] -> mem read/write addr
+        return False
+
+    # debug
+    # print(read_buf)
+
+    mem_line = read_buf[1]
+    mem_addr = mem_line.split(':')[1].strip()
+    if opcode.startswith('j'):
+        kept = False
+    elif opcode.startswith('unpck') or opcode.startswith('movlh') or opcode.startswith('movhl'):
+        kept = handle_two_arith(opcode, operands, mem_addr)  # although it is not arithmetic instruction
+    elif opcode.startswith('mov') and (opcode.endswith('ps') or opcode.endswith('ss') or opcode.endswith('sd') or opcode.endswith('qa')):
+        kept = handle_two(opcode, operands, mem_addr)  # mov related to xmm regs 
+    elif opcode.startswith('mov') or opcode.startswith('lea'):
+        kept = (
+            handle_mov(opcode, operands, mem_addr)
+            if check_operands(operands, read_buf[1])
+            else False
+        )
+                # kept = True  # try to keep all mov instructions  # NO, DEFINITELY NO!
+    elif opcode.startswith('call'):
+        kept = True  # keep function calls  to memset and expf for TVM
+        unset_common_regs('rax')
+    elif opcode.startswith('xor') or opcode.startswith('pxor'):
+        kept = handle_xor(opcode, operands, mem_addr)
+    elif opcode.startswith('vmovss') or opcode.startswith('vmovups') or opcode.startswith('vmovaps'):
+        kept = handle_two(opcode, operands, mem_addr)  # mov realted to xmm regs
+    elif opcode.startswith('vbroadcastss'):
+        kept = handle_two(opcode, operands, mem_addr)
+    elif opcode.startswith('vminss') or opcode.startswith('vmaxss') or \
+            opcode.startswith('vaddss') or opcode.startswith('vmulss') or opcode.startswith('vaddps'):
+        kept = handle_three(opcode, operands, mem_addr)
+    elif opcode.startswith('minps') or opcode.startswith('minss') or opcode.startswith('maxss') or \
+            opcode.startswith('addss') or opcode.startswith('mulss') or opcode.startswith('maxps') or \
+            opcode.startswith('addps') or opcode.startswith('mulps'):
+        kept = handle_two_arith(opcode, operands, mem_addr)
+    elif opcode.startswith('vfmadd231ss') or opcode.startswith('vfmadd213ps') or \
+            opcode.startswith('vfmadd231ps') or opcode.startswith('vfmadd132ss') or \
+            opcode.startswith('vfmadd213ss'):
+        kept = handle_three(opcode, operands, mem_addr, read_op1=True)
+    elif opcode.startswith('vxorps'):
+        # print(read_buf[0])  # debug
+        kept = handle_vxor(opcode, operands, mem_addr)
+    elif opcode.startswith('shufps'):
+        kept = False  # shufps is not modeled 
+    elif opcode.startswith('nop'):
+        kept = False
+    else:
+        handle_not_implemented(opcode, operands)
+    return kept
 
 
 # ===============================================
@@ -441,7 +427,7 @@ def is_number(s: str):
 
 def check_operands(operands: list, mem_line: str):
     # retur True if this instruction should be handled
-    if len(operands) < 1:
+    if not operands:
         return False
     for op in operands[:1]:  # only check the written op
         op = op.strip()
@@ -473,7 +459,7 @@ def check_operands(operands: list, mem_line: str):
             if op in tainted_regs:
                 return True
         else:
-            assert False, 'error:{} undefined op'.format(op)
+            assert False, f'error:{op} undefined op'
     return False
 
 
@@ -488,16 +474,12 @@ def split_addr_list(mem_addr: str, op_str: str):
             size = 8
         elif 'dword ptr' in op_str:
             size = 4
-        # elif 'word' in op_str:
-        #    size = 2
         elif 'ptr' in op_str:
             size = 8
         else:
-            assert False, 'error:{} undefined size'.format(op_str)
+            assert False, f'error:{op_str} undefined size'
         addr_int = int(mem_addr, 16)
-        for step in range(0, size, 4):  # the smallest unit is 4 bytes
-            m_addr = hex(addr_int + step)
-            m_addr_list.append(m_addr)
+        m_addr_list.extend(hex(addr_int + step) for step in range(0, size, 4))
     return m_addr_list
 
 
@@ -543,7 +525,7 @@ def handle_mov(opcode: str, operands: list, mem_addr: str):
             kept_flag = True
             unset_common_regs(op1)  # tainted_regs.remove(op1)
     else:
-        assert False, 'undefined {} {}'.format(opcode, operands)
+        assert False, f'undefined {opcode} {operands}'
     return kept_flag
 
 
@@ -578,7 +560,7 @@ def handle_two(opcode: str, operands: list, mem_addr: str):
             # for m_addr in m_addr_list:
             #    tainted_mems.add(m_addr)
     else:
-        assert False, 'undefined {} {}'.format(opcode, operands)
+        assert False, f'undefined {opcode} {operands}'
     return kept_flag
 
 
@@ -603,7 +585,7 @@ def handle_two_arith(opcode: str, operands: list, mem_addr: str):
             # tainted_regs.remove(op1)
             tainted_regs.add(op2)
     else:
-        assert False, 'undefined {} {}'.format(opcode, operands)
+        assert False, f'undefined {opcode} {operands}'
     return kept_flag
 
 
@@ -634,7 +616,7 @@ def handle_three(opcode: str, operands: list, mem_addr: str, read_op1=False):
             for m_addr in m_addr_list:
                 tainted_mems.add(m_addr)
     else:
-        assert False, 'undefined {} {}'.format(opcode, operands)
+        assert False, f'undefined {opcode} {operands}'
     return kept_flag
 
 
@@ -644,20 +626,19 @@ def handle_vxor(opcode: str, operands: list, mem_addr: str):
     op1 = operands[0].strip()
     op2 = operands[1].strip()
     op3 = operands[2].strip()
-    if op2 == op3:  # op1 == op2 == op3:
-        if op1 in tainted_regs:
-            tainted_regs.remove(op1)
-        if op2.startswith('xmm'):
-            same_reg = op2.replace('xmm', 'ymm')
-            if same_reg in tainted_regs:
-                tainted_regs.remove(same_reg)
-        elif op2.startswith('ymm'):
-            same_reg = op2.replace('ymm', 'xmm')
-            if same_reg in tainted_regs:
-                tainted_regs.remove(same_reg)
-        return True
-    else:
+    if op2 != op3:
         return handle_three(opcode, operands, mem_addr)
+    if op1 in tainted_regs:
+        tainted_regs.remove(op1)
+    if op2.startswith('xmm'):
+        same_reg = op2.replace('xmm', 'ymm')
+        if same_reg in tainted_regs:
+            tainted_regs.remove(same_reg)
+    elif op2.startswith('ymm'):
+        same_reg = op2.replace('ymm', 'xmm')
+        if same_reg in tainted_regs:
+            tainted_regs.remove(same_reg)
+    return True
 
 
 def handle_xor(opcode: str, operands: list, mem_addr: str):
@@ -680,7 +661,7 @@ def handle_xor(opcode: str, operands: list, mem_addr: str):
 def handle_not_implemented(opcode: str, operands: list):
     print(tainted_regs)
     print('inst not implemented')
-    assert False, '{} {}'.format(opcode, operands)
+    assert False, f'{opcode} {operands}'
     exit(0)
 
 
@@ -700,12 +681,12 @@ def get_trace(asm_path: str, prog_path: str, data_path: str, log_path: str, comp
 
     slice_log = log_path.replace('.log', '_slice.log')
     if os.path.exists(slice_log):
-        print('{} already exists.'.format(slice_log))
+        print(f'{slice_log} already exists.')
         return slice_log, 'unknown', -1, 'unknown', 'unknown'
     while True:
         rev_log, rnd_addr, loop_size, start_addr, end_addr = before_taint(asm_path, prog_path, data_path, log_path, compiler, func_type, func_info=func_info)
         # rnd_addr = '0x230fd760'  # debug
-        print('rnd addr {}, loop_size {}'.format(rnd_addr, loop_size))
+        print(f'rnd addr {rnd_addr}, loop_size {loop_size}')
 
         clear_state()
         target_addr = rnd_addr
@@ -715,19 +696,19 @@ def get_trace(asm_path: str, prog_path: str, data_path: str, log_path: str, comp
         if 'matmul' in func_type:
             loop_size = 16  # for simplicity
         size = loop_size * 4
-        for step in range(0, size, 4):  # the smallest unit is 4 bytes
-            m_addr = hex(addr_int + step)
-            mem_list.append(m_addr)
+        mem_list.extend(hex(addr_int + step) for step in range(0, size, 4))
         set_tainted(mem_list)
         if (not os.path.exists(slice_log)) or os.path.getsize(slice_log) <= (minimal_slice_size):
             reverse_taint(rev_log, slice_log)
         else:
-            print('{} already exists.'.format(slice_log))
+            print(f'{slice_log} already exists.')
 
         if os.path.getsize(slice_log) > (minimal_slice_size):  # default 1kb, any conv/dense slice log should be larger than this
             break  # if the size of slice log is too small, it indicates a inappropriate rnd_addr has been chosed
-    
-    logger.debug(' slice_log {}\n rnd_addr {}\n loop_size {}\n start_addr {}\n end_addr {}\n'.format(slice_log, rnd_addr, loop_size, start_addr, end_addr))
+
+    logger.debug(
+        f' slice_log {slice_log}\n rnd_addr {rnd_addr}\n loop_size {loop_size}\n start_addr {start_addr}\n end_addr {end_addr}\n'
+    )
     return slice_log, rnd_addr, loop_size, start_addr, end_addr
 
 
@@ -749,13 +730,13 @@ def filt_trace(asm_path: str, prog_path: str, data_path: str, rev_log_path: str,
     mem_list = []
     addr_int = int(target_addr, 16)
     size = loop_size * 4
-    for step in range(0, size, 4):  # the smallest unit is 4 bytes
-        m_addr = hex(addr_int + step)
-        mem_list.append(m_addr)
+    mem_list.extend(hex(addr_int + step) for step in range(0, size, 4))
     set_tainted(mem_list)
     reverse_taint(rev_log_path, slice_log)
     logger.debug('random choose an target address, and filter again')
-    logger.debug(' slice_log {}\n rnd_addr {}\n loop_size {}\n'.format(slice_log, rnd_addr, loop_size))
+    logger.debug(
+        f' slice_log {slice_log}\n rnd_addr {rnd_addr}\n loop_size {loop_size}\n'
+    )
     return slice_log, rnd_addr, loop_size
 
 
@@ -777,12 +758,10 @@ if __name__ == '__main__':
     data_path = "/export/d1/zliudc/DLE_Decompiler/TVM/rebuild_ida/vgg16_glow/cat.bin"
     log_path = 'tmp_trace.log'
 
-    if False:
-        slice_log, rnd_addr, loop_size, start_addr, end_addr = get_trace(asm_path, prog_path, data_path, log_path)
-        print(' slice_log {}\n rnd_addr {}\n loop_size {}\n start_addr {}\n end_addr {}\n'.format(slice_log, rnd_addr, loop_size, start_addr, end_addr))
-    else:
-        slice_log, rnd_addr, loop_size = filt_trace(asm_path, prog_path, data_path, 'tmp_trace_rev.log')
-        print(' slice_log {}\n rnd_addr {}\n loop_size {}\n'.format(slice_log, rnd_addr, loop_size))
+    slice_log, rnd_addr, loop_size = filt_trace(asm_path, prog_path, data_path, 'tmp_trace_rev.log')
+    print(
+        f' slice_log {slice_log}\n rnd_addr {rnd_addr}\n loop_size {loop_size}\n'
+    )
     exit(0)
 
     """
@@ -797,36 +776,26 @@ if __name__ == '__main__':
     set_tainted(mem_list)
     reverse_taint('./traces/0x4017b0-0x401e91_reverse.log', './traces/0x4017b0-0x401e91_slice.log')
     """
+    # print('debug {} {} {} {}'.format(reverse_log, slice_log, target_addr, length))
+    # exit(0)
+
+    mem_list = []
     if len(sys.argv) == 5:
         reverse_log = sys.argv[1]
         slice_log = sys.argv[2]
         target_addr = sys.argv[3]
         length = int(sys.argv[4])
-        # print('debug {} {} {} {}'.format(reverse_log, slice_log, target_addr, length))
-        # exit(0)
-
-        mem_list = []
-        addr_int = int(target_addr, 16)
-        size = length
-        for step in range(0, size, 4):  # the smallest unit is 4 bytes
-            m_addr = hex(addr_int + step)
-            mem_list.append(m_addr)
-        set_tainted(mem_list)
-        reverse_taint(reverse_log, slice_log)
     else:
         print('Usage: this_script.py <input_reverse.log> <output_slice.log> <target address> <length/size>')
         reverse_log = './0x4029c0-0x4030f9_reverse.log'
         slice_log = '0x4029c0-0x4030f9_slice.log'
         target_addr = '0x32354f0'
         length = 256
-        # print('debug {} {} {} {}'.format(reverse_log, slice_log, target_addr, length))
-        # exit(0)
 
-        mem_list = []
-        addr_int = int(target_addr, 16)
-        size = length
-        for step in range(0, size, 4):  # the smallest unit is 4 bytes
-            m_addr = hex(addr_int + step)
-            mem_list.append(m_addr)
-        set_tainted(mem_list)
-        reverse_taint(reverse_log, slice_log)
+    size = length
+    addr_int = int(target_addr, 16)
+    for step in range(0, size, 4):  # the smallest unit is 4 bytes
+        m_addr = hex(addr_int + step)
+        mem_list.append(m_addr)
+    set_tainted(mem_list)
+    reverse_taint(reverse_log, slice_log)

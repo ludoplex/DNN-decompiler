@@ -13,8 +13,7 @@ def read_json(json_path: str):
         j_txt = f.read()
         list_obj = json.loads(s=j_txt)
         arr_obj = np.array(list_obj, dtype=np.float32)
-        tensor_obj = torch.from_numpy(arr_obj)
-        return tensor_obj
+        return torch.from_numpy(arr_obj)
 
 
 def set_weights(module: nn.modules, json_path: str):
@@ -26,7 +25,7 @@ def set_weights(module: nn.modules, json_path: str):
 
 
 def set_biases(module: nn.modules, json_path: str):
-    if len(json_path) == 0:
+    if not json_path:
         module.bias.data.zero_()
     else:
         w = read_json(json_path)

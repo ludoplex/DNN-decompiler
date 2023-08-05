@@ -36,7 +36,7 @@ def set_weights(module: nn.modules, json_path: str):
 
 
 def set_biases(module: nn.modules, json_path: str):
-    if len(json_path) == 0:
+    if not json_path:
         module.bias.data.zero_()
     else:
         w = read_json(json_path)

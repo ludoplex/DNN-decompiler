@@ -34,26 +34,24 @@ def dict_to_json(dict_obj: dict, output_path: str):
 
 def json_to_list(json_path: str):
     if not os.path.exists(json_path):
-        return list()
+        return []
     with open(json_path, 'r') as f:
         j_txt = f.read()
-        list_obj = json.loads(s=j_txt)
-        return list_obj
+        return json.loads(s=j_txt)
 
 
 def json_to_dict(json_path: str):
     if not os.path.exists(json_path):
-        return dict()
+        return {}
     with open(json_path, 'r') as f:
         j_txt = f.read()
-        dict_obj = json.loads(s=j_txt)
-        return dict_obj
+        return json.loads(s=j_txt)
 
 
-addr2label = dict()
-addr2funcs = dict()
-addr2param = dict()
-func2param = dict()
+addr2label = {}
+addr2funcs = {}
+addr2param = {}
+func2param = {}
 
 funcs_dir = './vgg16_glow_funcs/'
 
@@ -100,7 +98,9 @@ def get_addr_list(label_path: str, fused=False):
                 addr2funcs[addr] = name.strip()
                 if fused and ('fused' not in label and 'entry' not in label):
                     continue
-                elif not fused and ('fused' in label or 'entry'==label.strip()):
+                elif not fused and (
+                    'fused' in label or label.strip() == 'entry'
+                ):
                     continue
 
                 addr_list.append(addr)
@@ -109,7 +109,7 @@ def get_addr_list(label_path: str, fused=False):
 
 def get_funcs_trace(prog_path: str, in_data: str, log_path: str, label_file: str, compiler='glow', only_fused=False):
     prog_path = os.path.abspath(prog_path)
-    if len(in_data) > 0:
+    if in_data != "":
         in_data = os.path.abspath(in_data)
     log_path = os.path.abspath(log_path)
     label_file = os.path.abspath(label_file)
@@ -124,10 +124,10 @@ def get_funcs_trace(prog_path: str, in_data: str, log_path: str, label_file: str
         # rm_duplicated_call(log_path)  # to track the index of add/multiply, have to keep duplicated calls
     elif compiler == 'glow':
         fun_call_rdi_rsi(prog_path, in_data, addr_list, log_path)
-    elif compiler == 'tvm' and not only_fused:
+    elif compiler == 'tvm':
         func_call_trace(prog_path, in_data, addr_list, log_path)
     else:
-        assert False, 'unknown compiler: {}'.format(compiler)
+        assert False, f'unknown compiler: {compiler}'
 
     dict_to_json(addr2label, './addr2label.json')
     dict_to_json(addr2funcs, './addr2funcs.json')
@@ -137,8 +137,8 @@ def print_layer_label_tvm(trace_log_path: str, config_path='', only_fused=False)
     global addr2label, addr2funcs, addr2param
     addr2label = json_to_dict('./addr2label.json')  # type: dict
     addr2funcs = json_to_dict('./addr2funcs.json')  # type: dict
-    func2param = dict()
-    addr2param = dict()
+    func2param = {}
+    addr2param = {}
     if len(config_path) > 0:
         config_path = os.path.abspath(config_path)
         func2param = json_to_dict(config_path)  # type: dict
@@ -153,9 +153,9 @@ def print_layer_label_tvm(trace_log_path: str, config_path='', only_fused=False)
                 if not line.startswith('0x'):
                     continue
                 addr = hex(int(line.split(':')[0].strip(), 16))
-                print('{}: {}'.format(addr, addr2label[addr]))
-                # if 'reshape' != addr2label[addr]:
-                #    print('{}: {}'.format(addr, addr2label[addr]))
+                print(f'{addr}: {addr2label[addr]}')
+                            # if 'reshape' != addr2label[addr]:
+                            #    print('{}: {}'.format(addr, addr2label[addr]))
     else:
         with open(trace_log_path, 'r') as f:
             node_id = 0
@@ -165,8 +165,7 @@ def print_layer_label_tvm(trace_log_path: str, config_path='', only_fused=False)
                 if not line.startswith('0x'):
                     continue
                 addr = hex(int(line.split(':')[0].strip(), 16))
-                addr_list = list(addr2label.keys())  # type: list
-                addr_list.sort()
+                addr_list = sorted(addr2label.keys())
                 if 'entry,' in addr2label[addr]:  # sometimes, the entry function also conducts computation
                     label = addr2label[addr]
                 else:
@@ -177,12 +176,14 @@ def print_layer_label_tvm(trace_log_path: str, config_path='', only_fused=False)
                 print('{}: {:<18}:'.format(addr, label), end=' ')
                 params = line.split(':')[1].strip()
                 params = params.split(',')[:-1]
-                param_labels = []
-                for key, labels_list in func2param.items():
-                    if key in label:
-                        param_labels = labels_list
-                        break
-
+                param_labels = next(
+                    (
+                        labels_list
+                        for key, labels_list in func2param.items()
+                        if key in label
+                    ),
+                    [],
+                )
                 input_list = []
                 output_list = []
                 # print the func parameters
@@ -193,23 +194,23 @@ def print_layer_label_tvm(trace_log_path: str, config_path='', only_fused=False)
                     output_list = params[-1:]
 
                 for i in range(len(params)):
-                    if i != len(params) - 1:
+                    if i == len(params) - 1:
                         if with_label:
-                            print('{} {},'.format(param_labels[i], params[i]), end=' ')
+                            print(f'{param_labels[i]} {params[i]}')
                         else:
-                            print('{},'.format(params[i]), end=' ')
-                    else:
-                        if with_label:
-                            print('{} {}'.format(param_labels[i], params[i]))
-                        else:
-                            print('{}'.format(params[i]))
-                    if with_label and 'in' in param_labels[i]:
-                        input_list.append(params[i])
-                    elif with_label and 'out' in param_labels[i]:
-                        output_list.append(params[i])
+                            print(f'{params[i]}')
                     elif with_label:
-                        input_list.append(params[i])
-
+                        print(f'{param_labels[i]} {params[i]},', end=' ')
+                    else:
+                        print(f'{params[i]},', end=' ')
+                    if with_label:
+                        if (
+                            'in' in param_labels[i]
+                            or 'out' not in param_labels[i]
+                        ):
+                            input_list.append(params[i])
+                        else:
+                            output_list.append(params[i])
                 for i in range(len(params)):
                     params[i] = int(params[i].strip(), 16)
                 param_list += params
@@ -221,11 +222,11 @@ def print_layer_label_tvm(trace_log_path: str, config_path='', only_fused=False)
     return param_list, addr2param
 
 
-def print_input_id(trace_log_path: str, compiler='tvm', addr2param=dict(), config_path=''):
+def print_input_id(trace_log_path: str, compiler='tvm', addr2param={}, config_path=''):
     global addr2label, addr2funcs  # , addr2param
     addr2label = json_to_dict('./addr2label.json')  # type: dict
     addr2funcs = json_to_dict('./addr2funcs.json')  # type: dict
-    func2param = dict()
+    func2param = {}
     if len(config_path) > 0:
         config_path = os.path.abspath(config_path)
         func2param = json_to_dict(config_path)  # type: dict
@@ -234,7 +235,7 @@ def print_input_id(trace_log_path: str, compiler='tvm', addr2param=dict(), confi
 
     params_list = []
     id = 0
-    id2addr = dict()
+    id2addr = {}
     if compiler == 'tvm':
         with open(trace_log_path, 'r') as f:
             trace_txt = f.read()
@@ -248,9 +249,7 @@ def print_input_id(trace_log_path: str, compiler='tvm', addr2param=dict(), confi
                 inputs = params[:-1]
                 output = params[-1:]
 
-                addr_list = list(addr2label.keys())  # type: list
-                addr_list.sort()
-                
+                addr_list = sorted(addr2label.keys())
                 if 'entry,' in addr2label[addr]:  # sometimes, the entry function also conducts computation
                     label = addr2label[addr]
                 else:
@@ -261,11 +260,14 @@ def print_input_id(trace_log_path: str, compiler='tvm', addr2param=dict(), confi
                 id2addr[id] = (addr_list[idx], addr)
 
                 if 'add add' not in label:
-                    param_labels = []
-                    for key, labels_list in func2param.items():
-                        if key in label and len(params) == len(labels_list):
-                            param_labels = labels_list
-                            break
+                    param_labels = next(
+                        (
+                            labels_list
+                            for key, labels_list in func2param.items()
+                            if key in label and len(params) == len(labels_list)
+                        ),
+                        [],
+                    )
                     if len(param_labels) > 0:  # refine the inputs and output with config
                         inputs = []
                         output = []
@@ -276,12 +278,6 @@ def print_input_id(trace_log_path: str, compiler='tvm', addr2param=dict(), confi
                                 inputs.append(params[i])
                     params_list.append((id, label, inputs, output))
                     id += 1
-                # if 'add add' not in label:  # TODO: why it looks like this?
-                #     params_list.append((id, label, inputs, output))
-                #     id += 1
-                #     if 'relu' in label:
-                #         params_list.append((id, 'relu', [output], output))
-                #         id += 1
                 else:  # TODO: merge this special case
                     conv2d_label = label.replace('add ', '', 1)
                     params_list.append((id, conv2d_label, inputs[1:], output))
@@ -303,24 +299,24 @@ def print_input_id(trace_log_path: str, compiler='tvm', addr2param=dict(), confi
                 func_name = addr2funcs[addr]
                 params = line.split(':')[1].strip(' ,')
                 params = params.split(',')  # not used, inputs and output is produced in utils.print_layer_label()
-                
+
                 if isinstance(addr2param[id][2][0], list):
                     inputs = addr2param[id][2][0]
                 elif isinstance(addr2param[id][2][0], str):
                     inputs = [addr2param[id][2][0]]  # make inputs a list
-                
+
                 if isinstance(addr2param[id][2][1], list):
                     assert len(addr2param[id][2][1]) == 1, 'len(output_list) should be 1.'
                     output = addr2param[id][2][1][0]
                 elif isinstance(addr2param[id][2][1], str):
                     output = addr2param[id][2][1]  # make output a str
-                
+
                 label = addr2label[addr]  # type: str
 
                 params_list.append((id, label, inputs, output))
                 id += 1
     else:
-        assert False, "compiler {} is currently not supported.".format(compiler)
+        assert False, f"compiler {compiler} is currently not supported."
 
     # generate input_id_list
     input_id_list = []
@@ -341,9 +337,9 @@ def print_input_id(trace_log_path: str, compiler='tvm', addr2param=dict(), confi
         input_id_list.insert(0, input_id)
 
     print(input_id_list)
-    output_dict = dict()
+    output_dict = {}
     topology_list = []
-    func_count = dict()
+    func_count = {}
     for param in params_list:
         if compiler == 'tvm':
             func_addr, entry_addr = id2addr[param[0]]
@@ -356,10 +352,10 @@ def print_input_id(trace_log_path: str, compiler='tvm', addr2param=dict(), confi
         func_name = addr2funcs[func_addr]
         # (name, shape, fused_func, type, padding, stride, param_index)
         output_dict[param[0]] = [func_name, [], entry_addr, param[1], None, None, None]
-        if addr2funcs[func_addr] not in func_count.keys():
-            func_count[addr2funcs[func_addr]] = 0
-        else:
+        if addr2funcs[func_addr] in func_count:
             func_count[addr2funcs[func_addr]] += 1
+        else:
+            func_count[addr2funcs[func_addr]] = 0
         topology_list.append([param[0],  # id
                               addr2funcs[func_addr],  # func name
                               param[1],  # label
@@ -371,11 +367,11 @@ def print_input_id(trace_log_path: str, compiler='tvm', addr2param=dict(), confi
     return output_dict, topology_list
 
 
-def refine_glow_config(f2p: dict()) -> dict:
+def refine_glow_config(f2p: {}) -> dict:
     new_dict = copy.deepcopy(f2p)  # type: dict
     for key, value in f2p.items():
         if len(value) < 4:
-            for i in range(len(value), 4):
+            for _ in range(len(value), 4):
                 value.append('none')
             new_dict[key] = value
     return new_dict
@@ -444,11 +440,8 @@ def print_layer_label(trace_log_path: str, config_path=''):  # for glow
                 #                                                           addr_list[0], addr_list[1], addr_list[2]))
                 print('{}: {:>10} - {:<16}:'.format(addr, addr2funcs[addr], addr2label[addr]), end=' ')
                 for i in range(len(addr_list)):
-                    if i == len(addr_list) - 1:
-                        end_str = '\n'
-                    else:
-                        end_str = ', '
-                    print('param{} {}'.format(i + 1, addr_list[i]), end=end_str)
+                    end_str = '\n' if i == len(addr_list) - 1 else ', '
+                    print(f'param{i + 1} {addr_list[i]}', end=end_str)
                 addr2param[node_id] = [addr, addr2funcs[addr], (addr_list[0], addr_list[1])]  # TODO: not accurate
             node_id += 1
             """
@@ -545,18 +538,12 @@ def identify_fixed_insert_tensor(asm_path: str):
             l = l.strip()
             if 'rdx' in l:
                 input = l.split(',')[1]
-                if 'rdx' not in input:
-                    return True
-                else:
-                    return False
+                return 'rdx' not in input
             elif 'edx' in l:
                 if 'xor' in l:
                     return True
                 input = l.split(',')[1]
-                if 'edx' not in input:
-                    return True
-                else:
-                    return False
+                return 'edx' not in input
 
 
 def recover_shape(func_name: str, mem_exp_log: str,
